@@ -3,7 +3,7 @@
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
  Description: Adds a <strong>widget</strong> to your sidebar for <strong>section based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current section. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 1.1
+ Version: 1.1.2
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -86,7 +86,7 @@ function widget_ssn($args) {
 	if (in_array($top_page,$excluded)) return false;
 	
 	if(get_option('ssn_show_all')) {	
-		$children = wp_list_pages('title_li=&echo=0&child_of='.$top_page.'&exclude='.get_option('ssn_exclude'));
+		$children = wp_list_pages('title_li=&echo=0&hierarchical=1&depth=0&child_of='.$top_page.'&exclude='.get_option('ssn_exclude'));
 		
 		//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
 		if(!$children && !get_option('ssn_show_empty')) return false;
@@ -111,7 +111,7 @@ function widget_ssn($args) {
 		}
 		
 		if(!$pagelist && !get_option('ssn_show_empty')) return false;	//if there are no pages to include and the user has not chosen to show sections without pages
-		elseif ($pagelist) $children = wp_list_pages('title_li=&echo=0&include='.$pagelist);	//get the list of pages, including only those in our page list
+		elseif ($pagelist) $children = wp_list_pages('title_li=&echo=0&hierarchical=1&depth=0&sort_column=menu_order&include='.$pagelist);	//get the list of pages, including only those in our page list
 		else $children = "";
 	}
 	
