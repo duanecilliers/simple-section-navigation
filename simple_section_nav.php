@@ -3,7 +3,7 @@
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
  Description: Adds a <strong>widget</strong> to your sidebar for <strong>section based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current section. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 1.1.2
+ Version: 1.2
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -84,36 +84,27 @@ function widget_ssn($args) {
 	$top_page = $post_ancestors ? end($post_ancestors) : $post->ID;
 	//if the top level page is in the excluded list, cancel function
 	if (in_array($top_page,$excluded)) return false;
+	//initialize default variables
+	$pagelist = "";
+	$thedepth = 0;
 	
-	if(get_option('ssn_show_all')) {	
-		$children = wp_list_pages('title_li=&echo=0&hierarchical=1&depth=0&child_of='.$top_page.'&exclude='.get_option('ssn_exclude'));
-		
-		//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
-		if(!$children && !get_option('ssn_show_empty')) return false;
-	} else {
-	
-		//initialize pagelist variable to hold list of pages to include
-		$pagelist = "";
-		
-		//add the immediate children (no grandchildren) of each page
-		//in this page's ancestory to the list
+	if(!get_option('ssn_show_all')) {	
+		//exclude pages not in direct hierarchy
 		foreach ($post_ancestors as $theid) {
-		     $pageset = get_posts('post_type=page&numberposts=-1&orderby=menu_order&post_parent='.$theid);
+		     $pageset = get_pages('child_of='.$theid.'&parent='.$theid);
 		     foreach ($pageset as $apage) {
-		     	if(!in_array($apage->ID,$excluded)) $pagelist = $pagelist.$apage->ID.",";	//if not an excluded page, add to pagelist
+			 	if(!in_array($apage->ID,$post_ancestors) && $apage->ID != $post->ID) {
+					$excludeset = get_pages('child_of='.$apage->ID.'&parent='.$apage->ID);
+					foreach ($excludeset as $expage) $pagelist = $pagelist.$expage->ID.",";
+				}
 		     }
 		}
 		
-		//add any children of the current page to the list
-		$pageset = get_posts('post_type=page&numberposts=-1&orderby=menu_order&post_parent='.$post->ID);
-		foreach ($pageset as $apage) {
-			if(!in_array($apage->ID,$excluded)) $pagelist = $pagelist.$apage->ID.",";	//if not an excluded page, add to pagelist
-		}
-		
-		if(!$pagelist && !get_option('ssn_show_empty')) return false;	//if there are no pages to include and the user has not chosen to show sections without pages
-		elseif ($pagelist) $children = wp_list_pages('title_li=&echo=0&hierarchical=1&depth=0&sort_column=menu_order&include='.$pagelist);	//get the list of pages, including only those in our page list
-		else $children = "";
-	}
+		$thedepth = count($post_ancestors)+1; //prevents improper grandchildren from showing
+	}		
+	
+	$children = wp_list_pages('title_li=&echo=0&depth='.$thedepth.'&child_of='.$top_page.'&sort_column=menu_order&exclude='.$pagelist.get_option('ssn_exclude'));	//get the list of pages, including only those in our page list
+	if(!$children && !get_option('ssn_show_empty')) return false; 	//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
 	
 	$sect_title = get_the_title($top_page);
 	if (get_option('ssn_a_heading')) $sect_title = '<a href="'.get_permalink($top_page).'" id="toppage-'.$top_page.'">'.$sect_title.'</a>';

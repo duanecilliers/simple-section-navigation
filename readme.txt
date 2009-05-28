@@ -4,7 +4,7 @@ Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-
 Tags: navigation, section, cms, pages
 Requires at least: 2.7
 Tested up to: 2.7.1
-Stable tag: 1.1.2
+Stable tag: 1.2
 
 Adds a widget to your sidebar for section based navigation. Essential for CMS implementations! The title of the 
 widget is the top level page within the current section. Shows all page siblings (except on the top level page), 
@@ -35,6 +35,9 @@ easy styling.
 
 Compatible with WordPress MU.
 
+Considerable under the hood changes in 1.2 fixes page flattening / depth issue by "excluding" instead of 
+"including" pages.
+
 
 == Installation ==
 
@@ -62,6 +65,10 @@ v1.1
 
 v1.1.2
 * Fixed occassional flattening or wrong order of hierarchical pages
+
+v1.2
+* DEFINITIVE FIX FOR PAGE FLATTENING / FLAT HIERARCHY / NO DEPTH ISSUES
+* Performance improvements
 
 Future features:
 * Ability to include an "Overview" link that links to top level page within section
