@@ -3,7 +3,7 @@
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
  Description: Adds a <strong>widget</strong> to your sidebar for <strong>section based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current section. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 1.2
+ Version: 1.3
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -36,8 +36,18 @@ function ssn_admin_init() {
 	register_setting('ssn-options', 'ssn_show_on_home');
 	register_setting('ssn-options', 'ssn_show_empty');
 	register_setting('ssn-options', 'ssn_a_heading');
+	register_setting('ssn-options', 'ssn_sortby');
 }
 add_action( 'admin_init', 'ssn_admin_init' );
+
+function ssn_plugin_actlinks( $links ) { 
+ // Add a link to this plugin's settings page
+ $plugin = plugin_basename(__FILE__);
+ $settings_link = sprintf( '<a href="options-general.php?page=%s">%s</a>', $plugin, __('Settings') ); 
+ array_unshift( $links, $settings_link ); 
+ return $links; 
+}
+if(is_admin()) add_filter("plugin_action_links_".$plugin, 'ssn_plugin_actlinks' );
 
 //*******************//
 //***CORE FUNCTION***//
@@ -55,17 +65,20 @@ function simple_section_nav($before_title="",$after_title="") {
 function widget_ssn($args) {
 	if($args) extract($args);  
   	
-  	global $post;	//make the post global so we can talk to it in a widget or sidebar
-  	if(!$post) return false;	//if we cant get current post or page info, lets leave the function
-  	if (is_front_page() && !get_option('ssn_show_on_home')) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
+	global $post;	//make the post global so we can talk to it in a widget or sidebar
+	if(!$post) return false;	//if we cant get current post or page info, lets leave the function
+	if (is_front_page() && !get_option('ssn_show_on_home')) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
+	
+	$sortby = get_option('ssn_sortby');
+	if(!$sortby) $sortby = 'menu_order';
 	
 	if (is_front_page()) {
-  		echo $before_widget;  
+	  echo $before_widget;  
 		echo $before_title;  
 		bloginfo('name');
 		echo $after_title;
 		echo "<ul>";  
-		wp_list_pages('title_li=&depth=1');
+		wp_list_pages('title_li=&depth=1&sort_column='.$sortby);
 		echo "</ul>";  
 		echo $after_widget;
 		
@@ -91,23 +104,26 @@ function widget_ssn($args) {
 	if(!get_option('ssn_show_all')) {	
 		//exclude pages not in direct hierarchy
 		foreach ($post_ancestors as $theid) {
-		     $pageset = get_pages('child_of='.$theid.'&parent='.$theid);
-		     foreach ($pageset as $apage) {
+			$pageset = get_pages('child_of='.$theid.'&parent='.$theid);
+			foreach ($pageset as $apage) {
 			 	if(!in_array($apage->ID,$post_ancestors) && $apage->ID != $post->ID) {
 					$excludeset = get_pages('child_of='.$apage->ID.'&parent='.$apage->ID);
 					foreach ($excludeset as $expage) $pagelist = $pagelist.$expage->ID.",";
 				}
-		     }
+			}
 		}
 		
 		$thedepth = count($post_ancestors)+1; //prevents improper grandchildren from showing
 	}		
 	
-	$children = wp_list_pages('title_li=&echo=0&depth='.$thedepth.'&child_of='.$top_page.'&sort_column=menu_order&exclude='.$pagelist.get_option('ssn_exclude'));	//get the list of pages, including only those in our page list
+	$children = wp_list_pages('title_li=&echo=0&depth='.$thedepth.'&child_of='.$top_page.'&sort_column='.$sortby.'&exclude='.$pagelist.get_option('ssn_exclude'));	//get the list of pages, including only those in our page list
 	if(!$children && !get_option('ssn_show_empty')) return false; 	//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
 	
 	$sect_title = get_the_title($top_page);
-	if (get_option('ssn_a_heading')) $sect_title = '<a href="'.get_permalink($top_page).'" id="toppage-'.$top_page.'">'.$sect_title.'</a>';
+	if (get_option('ssn_a_heading')) {
+		$headclass = ($post->ID == $top_page) ? "current_page_item" : "current_page_ancestor";
+		$sect_title = '<a href="'.get_permalink($top_page).'" id="toppage-'.$top_page.'" class="'.$headclass.'">'.$sect_title.'</a>';	
+	}
   	
 	echo $before_widget;  
 	echo $before_title;  
@@ -143,7 +159,7 @@ function ssn_options() {
 				<h3 class="hndle">Support us</h3>
 				<div class="inside">
 					<p>Help support continued development of Simple Section Navigation and our other plugins.</p>
-					<p>The best thing you can do is refer someone looking for web development or strategy work <a href="http://www.cmurrayconsulting.com">to our company</a>.</p>
+					<p>The best thing you can do is <strong>refer someone looking for web development or strategy work <a href="http://www.cmurrayconsulting.com" target="_blank">to our company</a></strong>. Learn more about our <a href="http://www.cmurrayconsulting.com/services/partners/wordpress-developer/" target="_blank">Wordpress experience and services</a>.</p>
 					<p>Short of that, please consider a donation. If you cannot afford even a small donation, please consider providing a link to our website, maybe in a blog post acknowledging this plugin.</p>
 					<form method="post" action="https://www.paypal.com/cgi-bin/webscr" style="text-align: left;">
 					<input type="hidden" value="_s-xclick" name="cmd"/>
@@ -168,13 +184,13 @@ function ssn_options() {
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row" valign="top">Link heading [<a href="#" onclick="alert('If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box.'); return false;" style="cursor: help;" title="If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box.">?</a>]</th>
+								<th scope="row" valign="top">Link heading [<a href="#" onclick="alert('If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box. This link will also include a current_page_item or current_page_ancestor class for consistent styling.'); return false;" style="cursor: help;" title="If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box. This link will also include a current_page_item or current_page_ancestor class for consistent styling.">?</a>]</th>
 								<td style="padding: 10px;">
 									<input type="checkbox" name="ssn_a_heading" id="ssn_a_heading"<?php if (get_option('ssn_a_heading')) { echo ' checked="true"'; } ?> />
 								</td>
 							</tr>
 							<tr valign="top">
-								<th scope="row" valign="top">Show all pages in section [<a href="#" onclick="alert('Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings, and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.'); return false;" style="cursor: help;" title="Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings, and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.">?</a>]</th>
+								<th scope="row" valign="top">Show all pages in section [<a href="#" onclick="alert('Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings (and higher), and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.'); return false;" style="cursor: help;" title="Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings (and higher), and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.">?</a>]</th>
 								<td style="padding: 10px;">
 									<input type="checkbox" name="ssn_show_all" id="ssn_show_all"<?php if (get_option('ssn_show_all')) { echo ' checked="true"'; } ?> />
 								</td>
@@ -206,6 +222,20 @@ function ssn_options() {
 								</td>
 							</tr>
 							<tr valign="top">
+								<th scope="row" valign="top">Sort pages by</th>
+								<td style="padding: 10px;">
+									<select name="ssn_sortby" id="ssn_sortby">
+										<option value="menu_order"<?php if (get_option('ssn_sortby') == "menu_order") echo ' selected="selected"'; ?>>Menu Order</option>
+										<option value="post_title"<?php if (get_option('ssn_sortby') == "post_title") echo ' selected="selected"'; ?>>Title</option>
+										<option value="post_date"<?php if (get_option('ssn_sortby') == "post_date") echo ' selected="selected"'; ?>>Pub Date</option>
+										<option value="post_modified"<?php if (get_option('ssn_sortby') == "post_modified") echo ' selected="selected"'; ?>>Mod Date</option>
+										<option value="ID"<?php if (get_option('ssn_sortby') == "ID") echo ' selected="selected"'; ?>>Page ID</option>
+										<option value="post_author"<?php if (get_option('ssn_sortby') == "post_author") echo ' selected="selected"'; ?>>Author</option>
+										<option value="post_name"<?php if (get_option('ssn_sortby') == "post_name") echo ' selected="selected"'; ?>>Permalink</option>
+									</select>
+								</td>
+							</tr>
+							<tr valign="top">
 								<td colspan="2" style="border-top: 1px dashed #DFDFDF;">
 									<p>If your template does not use widgets, you can call the section navigation by using the function <strong>simple_section_nav()</strong>. The function accepts two parameters: "before_title" and "after_title", allowing control over HTML around the  section title. For example, if you wanted to wrap the section title in heading 2 tags, you would call the function like so: <strong>simple_section_nav("&lt;h2&gt;","&lt;/h2&gt;")</strong></p>
 								</td>
@@ -215,7 +245,7 @@ function ssn_options() {
 				</div>
 				
 				<input type="hidden" name="action" value="update" />
-				<input type="hidden" name="page_options" value="ssn_show_on_home,ssn_a_heading,ssn_show_all,ssn_show_empty,ssn_exclude,ssn_hide_on_excluded" />
+				<input type="hidden" name="page_options" value="ssn_show_on_home,ssn_a_heading,ssn_show_all,ssn_show_empty,ssn_exclude,ssn_hide_on_excluded,ssn_sortby" />
 				
 				<p>
 				<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />

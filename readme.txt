@@ -1,16 +1,16 @@
 === simple Section Navigation Widget ===
 Contributors: Jacob M Goldman (C. Murray Consulting)
 Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
-Tags: navigation, section, cms, pages
+Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.7
-Tested up to: 2.7.1
-Stable tag: 1.2
+Tested up to: 2.8
+Stable tag: 1.3
 
 Adds a widget to your sidebar for section based navigation. Essential for CMS implementations! The title of the 
 widget is the top level page within the current section. Shows all page siblings (except on the top level page), 
 all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), 
 and any immediate children of the current page. Can also be called by a function inside template files. May 
-exclude any pages or sections. Uses standard WordPress navigation classes for easy styling.
+exclude any pages or sections. Uses standard WordPress navigation classes for easy styling. Easy configuration.
 
 == Description ==
 
@@ -29,6 +29,7 @@ It includes an easy to use configuration panel inside the WordPress settings men
    4. Provide a list of pages to exclude from the output
    5. Determine whether the section navigation should still appear when viewing excluded pages
    6. Determine whether the section title should be linked
+   7. Determine page sort order (defaults to menu order)
 
 The widget uses standard WordPress navigation classes, in addition to a unique class around the widget, for 
 easy styling.
@@ -69,6 +70,12 @@ v1.1.2
 v1.2
 * DEFINITIVE FIX FOR PAGE FLATTENING / FLAT HIERARCHY / NO DEPTH ISSUES
 * Performance improvements
+
+v1.3
+* Ability to set page sort order (still defaults to menu order)
+* Applies current_page_item and current_page_ancestor classes to optional heading link
+* Easy access to settings panel from plug-ins page
+* WordPress 2.8 compatibility check
 
 Future features:
 * Ability to include an "Overview" link that links to top level page within section
