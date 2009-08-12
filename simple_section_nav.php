@@ -3,7 +3,7 @@
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
  Description: Adds a <strong>widget</strong> to your sidebar for <strong>section based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current section. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 1.3
+ Version: 1.3.1
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -65,15 +65,23 @@ function simple_section_nav($before_title="",$after_title="") {
 function widget_ssn($args) {
 	if($args) extract($args);  
   	
-	global $post;	//make the post global so we can talk to it in a widget or sidebar
-	if(!$post) return false;	//if we cant get current post or page info, lets leave the function
-	if (is_front_page() && !get_option('ssn_show_on_home')) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
-	
-	$sortby = get_option('ssn_sortby');
+  	$ssn_show_on_home = get_option('ssn_show_on_home');
+  	if (is_front_page() && !$ssn_show_on_home) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
+  	if (is_search() || is_404()) return false; //doesn't work on search or 404 page
+  	
+  	if (is_page()) global $post;	//make the post global so we can talk to it in a widget or sidebar
+	else {
+		$post_page = get_option("page_for_posts");
+		if ($post_page) $post = get_page($post_page); //get the posts page
+		elseif ($ssn_show_on_home) $sub_front_page = true;
+		else return false;
+	}
+  	
+ 	$sortby = get_option('ssn_sortby');
 	if(!$sortby) $sortby = 'menu_order';
 	
-	if (is_front_page()) {
-	  echo $before_widget;  
+	if (is_front_page() || isset($sub_front_page)) {
+		echo $before_widget;  
 		echo $before_title;  
 		bloginfo('name');
 		echo $after_title;
@@ -84,6 +92,8 @@ function widget_ssn($args) {
 		
 		return true;  
   	}
+	
+	if(!$post) return false;	//if we cant get current post or page info, lets leave the function
   	
   	//get the list of excluded pages, and add a comma to the end so we can precisely search for matching page id later
 	$excluded = explode(',', get_option('ssn_exclude'));
@@ -260,6 +270,5 @@ function ssn_options() {
 function ssn_admin_menu() {
 	add_options_page('Simple Section Navigation Configuration', 'Section Nav', 8, __FILE__, 'ssn_options');
 }
-
 add_action('admin_menu', 'ssn_admin_menu');
 ?>
