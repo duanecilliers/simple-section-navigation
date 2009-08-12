@@ -3,8 +3,8 @@ Contributors: Jacob M Goldman (C. Murray Consulting)
 Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
 Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.7
-Tested up to: 2.8
-Stable tag: 1.3
+Tested up to: 2.8.3
+Stable tag: 1.3.1
 
 Adds a widget to your sidebar for section based navigation. Essential for CMS implementations! The title of the 
 widget is the top level page within the current section. Shows all page siblings (except on the top level page), 
@@ -57,7 +57,7 @@ Section Nav" widget
 2. Screenshot of configuration panel.
 
 
-== Arbitrary section ==
+== Changelog ==
 
 v1.1
 * Added ability to link heading, which also wraps it in a unique id
@@ -77,7 +77,11 @@ v1.3
 * Easy access to settings panel from plug-ins page
 * WordPress 2.8 compatibility check
 
+v1.3.1
+* Fixes and optimizes output on posts page, posts, and archives
+
 Future features:
+* Lists private pages if user has permission to see them
 * Ability to include an "Overview" link that links to top level page within section
 * Ability to set a maximum page depth for display in widget
 * Ability to treat blog categories as sub pages of blog home
