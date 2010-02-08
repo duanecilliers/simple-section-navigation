@@ -2,8 +2,8 @@
 /**
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
- Description: Adds a <strong>widget</strong> to your sidebar for <strong>section based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current section. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 1.3.1
+ Description: Adds a <strong>widget</strong> for <strong>section (or top level page) based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current page hierarchy. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
+ Version: 2.0
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -25,250 +25,221 @@
 */
 
 
-//*********//
-//PLUG INIT//
-//*********//
-function ssn_admin_init() {
-	register_setting('ssn-options', 'ssn_show_all');
-	register_setting('ssn-options', 'ssn_exclude');
-	register_setting('ssn-options', 'ssn_hide_on_excluded');
-	//register_setting('ssn-options', 'ssn_cats_as_pages');
-	register_setting('ssn-options', 'ssn_show_on_home');
-	register_setting('ssn-options', 'ssn_show_empty');
-	register_setting('ssn-options', 'ssn_a_heading');
-	register_setting('ssn-options', 'ssn_sortby');
-}
-add_action( 'admin_init', 'ssn_admin_init' );
-
-function ssn_plugin_actlinks( $links ) { 
- // Add a link to this plugin's settings page
- $plugin = plugin_basename(__FILE__);
- $settings_link = sprintf( '<a href="options-general.php?page=%s">%s</a>', $plugin, __('Settings') ); 
- array_unshift( $links, $settings_link ); 
- return $links; 
-}
-if(is_admin()) add_filter("plugin_action_links_".$plugin, 'ssn_plugin_actlinks' );
-
-//*******************//
-//***CORE FUNCTION***//
-//*******************//
-
-function simple_section_nav($before_title="",$after_title="") {
-	$ssn_args = array('before_title'=>$before_title,'after_title' => $after_title);
-	widget_ssn($ssn_args);
+/**
+ * fld_checked_output() will return string 'checked="checked"' if evaluates true, else returns false
+ * 
+ * @param mixed $fldValue is the value to evaulate if true; ideally boolean 
+ * @return string checked='checked' or false
+ */
+function fld_checked_output($fldValue = false) {
+	if (!$fldValue) return false;
+	echo ' checked="checked" ';
+	return true; 
 }
 
-//****************************//
-//*** WIDGET INITIALIZATION **//
-//****************************//
-
-function widget_ssn($args) {
-	if($args) extract($args);  
-  	
-  	$ssn_show_on_home = get_option('ssn_show_on_home');
-  	if (is_front_page() && !$ssn_show_on_home) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
-  	if (is_search() || is_404()) return false; //doesn't work on search or 404 page
-  	
-  	if (is_page()) global $post;	//make the post global so we can talk to it in a widget or sidebar
-	else {
-		$post_page = get_option("page_for_posts");
-		if ($post_page) $post = get_page($post_page); //get the posts page
-		elseif ($ssn_show_on_home) $sub_front_page = true;
-		else return false;
+class SimpleSectionNav extends WP_Widget
+{
+	function SimpleSectionNav() {
+		$widget_ops = array('classname' => 'simple-section-nav', 'description' => __( "Shows page ancestory (parents, grandparents, etc), siblings of ancestory and current page, and immediate children of the current page beneath the current top level page.") );
+		$this->WP_Widget('simple-section-nav', __('Simple Section Navigation'), $widget_ops);
 	}
-  	
- 	$sortby = get_option('ssn_sortby');
-	if(!$sortby) $sortby = 'menu_order';
-	
-	if (is_front_page() || isset($sub_front_page)) {
-		echo $before_widget;  
-		echo $before_title;  
-		bloginfo('name');
-		echo $after_title;
-		echo "<ul>";  
-		wp_list_pages('title_li=&depth=1&sort_column='.$sortby);
-		echo "</ul>";  
-		echo $after_widget;
+
+    function widget($args, $instance) {
+		extract($args);
 		
-		return true;  
-  	}
-	
-	if(!$post) return false;	//if we cant get current post or page info, lets leave the function
-  	
-  	//get the list of excluded pages, and add a comma to the end so we can precisely search for matching page id later
-	$excluded = explode(',', get_option('ssn_exclude'));
-	
-	//do not display widget if this page is in the excluded list, and user choose to not show section navigation for excluded pages 
-	if (in_array($post->ID,$excluded) && get_option('ssn_hide_on_excluded')) return false; 
-  	
-  	//get the current page's ancestors
-	$post_ancestors = get_post_ancestors($post);
-	//get the top page id
-	$top_page = $post_ancestors ? end($post_ancestors) : $post->ID;
-	//if the top level page is in the excluded list, cancel function
-	if (in_array($top_page,$excluded)) return false;
-	//initialize default variables
-	$pagelist = "";
-	$thedepth = 0;
-	
-	if(!get_option('ssn_show_all')) {	
-		//exclude pages not in direct hierarchy
-		foreach ($post_ancestors as $theid) {
-			$pageset = get_pages('child_of='.$theid.'&parent='.$theid);
-			foreach ($pageset as $apage) {
-			 	if(!in_array($apage->ID,$post_ancestors) && $apage->ID != $post->ID) {
-					$excludeset = get_pages('child_of='.$apage->ID.'&parent='.$apage->ID);
-					foreach ($excludeset as $expage) $pagelist = $pagelist.$expage->ID.",";
-				}
-			}
+		if (is_front_page() && !$instance['show_on_home']) return false;	//if we're on the home page and we haven't chosen to show this anyways, leave
+  		if (is_search() || is_404()) return false; //doesn't apply to search or 404 page
+		
+		if (is_page()) {
+			global $post;	//make the post global so we can talk to it in a widget or sidebar
+			_get_post_ancestors($post);   //workaround for occassional problems
+		} else {
+			$post_page = get_option("page_for_posts");
+			if ($post_page) $post = get_page($post_page); //treat the posts page as the current page if applicable
+			elseif ($instance['show_on_home']) $sub_front_page = true;	//if want to show on home, and home is the posts page
+			else return false;
 		}
 		
-		$thedepth = count($post_ancestors)+1; //prevents improper grandchildren from showing
-	}		
-	
-	$children = wp_list_pages('title_li=&echo=0&depth='.$thedepth.'&child_of='.$top_page.'&sort_column='.$sortby.'&exclude='.$pagelist.get_option('ssn_exclude'));	//get the list of pages, including only those in our page list
-	if(!$children && !get_option('ssn_show_empty')) return false; 	//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
-	
-	$sect_title = get_the_title($top_page);
-	if (get_option('ssn_a_heading')) {
-		$headclass = ($post->ID == $top_page) ? "current_page_item" : "current_page_ancestor";
-		$sect_title = '<a href="'.get_permalink($top_page).'" id="toppage-'.$top_page.'" class="'.$headclass.'">'.$sect_title.'</a>';	
-	}
-  	
-	echo $before_widget;  
-	echo $before_title;  
-	echo $sect_title;
-	echo $after_title;
-	echo "<ul>";  
-	echo $children;
-	echo "</ul>";  
-	echo $after_widget;
-	
-	return true;  
-}
-
-function ssn_init() {
-  register_sidebar_widget('Simple Section Nav', 'widget_ssn');
-}
-
-add_action("plugins_loaded", "ssn_init");
-
-
-//************************//
-//** ADMIN CONTROL PANEL *//
-//************************//
-
-function ssn_options() {
-?>
-	<div class="wrap">
-		<h2>Simple Section Navigation Configuration</h2>
-	
-		<div id="poststuff" style="margin-top: 20px;">
-	
-			<div class="postbox" style="width: 215px; min-width: 215px; float: right;">
-				<h3 class="hndle">Support us</h3>
-				<div class="inside">
-					<p>Help support continued development of Simple Section Navigation and our other plugins.</p>
-					<p>The best thing you can do is <strong>refer someone looking for web development or strategy work <a href="http://www.cmurrayconsulting.com" target="_blank">to our company</a></strong>. Learn more about our <a href="http://www.cmurrayconsulting.com/services/partners/wordpress-developer/" target="_blank">Wordpress experience and services</a>.</p>
-					<p>Short of that, please consider a donation. If you cannot afford even a small donation, please consider providing a link to our website, maybe in a blog post acknowledging this plugin.</p>
-					<form method="post" action="https://www.paypal.com/cgi-bin/webscr" style="text-align: left;">
-					<input type="hidden" value="_s-xclick" name="cmd"/>
-					<input type="hidden" value="3377715" name="hosted_button_id"/>
-					<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donate_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online!"/> <img height="1" border="0" width="1" alt="" src="https://www.paypal.com/en_US/i/scr/pixel.gif"/><br/>
-					</form>
-					<p><strong><a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/">Support page</a></strong></p>
-				</div>
-			</div>
+		/*
+		//unnecessary now with defaults?
+		if (!$sortby = $instance['sort_by']) $sortby = 'menu_order';
+		*/
+		
+		if (is_front_page() || isset($sub_front_page)) {
+			echo $before_widget;  
+			echo $before_title.get_bloginfo('name').$after_title;
+			echo "<ul>";
+			wp_list_pages(array('title_li'=>'', 'depth'=>1, 'sort_column'=>$instance['sort_by'], 'exclude'=>$instance['exclude']));
+			echo "</ul>";  
+			echo $after_widget;
 			
-			<form method="post" action="options.php">
-			<?php settings_fields('ssn-options'); ?>
+			return true; 
+	  	}
+		
+		//get the list of excluded pages, and add a comma to the end so we can precisely search for matching page id later
+		$excluded = explode(',', $instance['exclude']);
+		//do not display widget if this page is in the excluded list, and user choose to not show section navigation for excluded pages 
+		if (in_array($post->ID,$excluded) && $instance['hide_on_excluded']) return false;
+		
+		$post_ancestors = (isset($post->ancestors)) ? $post->ancestors : get_post_ancestors($post); //get the current page's ancestors either from existing value or by executing function
+		$top_page = $post_ancestors ? end($post_ancestors) : $post->ID; //get the top page id
+		if (in_array($top_page,$excluded)) return false; //if the top level page is in the excluded list, cancel function
+		
+		//initialize default variables
+		$pagelist = "";
+		$thedepth = 0;
+		
+		if(!$instance['show_all']) {	
+			//exclude pages not in direct hierarchy
+			foreach ($post_ancestors as $theid) {
+				$pageset = get_pages(array('child_of'=>$theid, 'parent'=>$theid));
+				foreach ($pageset as $apage) {
+				 	if(!in_array($apage->ID,$post_ancestors) && $apage->ID != $post->ID) {
+						$excludeset = get_pages(array('child_of'=>$apage->ID, 'parent'=>$apage->ID));
+						foreach ($excludeset as $expage) $pagelist = $pagelist.$expage->ID.",";
+					}
+				}
+			}
 			
-				<div class="postbox" style="width: 350px;">
-					<h3 class="hndle">Display options</h3>
-					<div class="inside">
-						<table class="form-table" style="clear: none;">
-							<tr valign="top">
-								<th scope="row" valign="top">Show on home page [<a href="#" onclick="alert('Normally, we do not want section navigation on the home page. If you check this box, the section navigation will also appear on the home page, with the name of the name of the site as the heading and all the top level pages listed.'); return false;" style="cursor: help;" title="Normally, we do not want section navigation on the home page. If you check this box, the section navigation will also appear on the home page, with the name of the name of the site as the heading and all the top level pages listed.">?</a>]</th>
-								<td style="padding: 10px;">
-									<input type="checkbox" name="ssn_show_on_home" id="ssn_show_on_home"<?php if (get_option('ssn_show_on_home')) { echo ' checked="true"'; } ?> />
-								</td>
-							</tr>
-							<tr valign="top">
-								<th scope="row" valign="top">Link heading [<a href="#" onclick="alert('If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box. This link will also include a current_page_item or current_page_ancestor class for consistent styling.'); return false;" style="cursor: help;" title="If you would like the heading to be linked to the top level page, with a unique ID based on the page ID, check this box. This link will also include a current_page_item or current_page_ancestor class for consistent styling.">?</a>]</th>
-								<td style="padding: 10px;">
-									<input type="checkbox" name="ssn_a_heading" id="ssn_a_heading"<?php if (get_option('ssn_a_heading')) { echo ' checked="true"'; } ?> />
-								</td>
-							</tr>
-							<tr valign="top">
-								<th scope="row" valign="top">Show all pages in section [<a href="#" onclick="alert('Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings (and higher), and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.'); return false;" style="cursor: help;" title="Normally, the plugin will only show siblings, parents and their siblings, and grandparents and their siblings (and higher), and any children of the current page. Check this box to show all pages within the section no matter where the user is in the section.">?</a>]</th>
-								<td style="padding: 10px;">
-									<input type="checkbox" name="ssn_show_all" id="ssn_show_all"<?php if (get_option('ssn_show_all')) { echo ' checked="true"'; } ?> />
-								</td>
-							</tr>
-							<tr valign="top">
-								<th scope="row" valign="top">Show even if empty [<a href="#" onclick="alert('Normally, the widget will not display if there are no pages in the current section. If you want the widget to output anyways, with the section title, check this box.'); return false;" style="cursor: help;" title="Normally, the widget will not display if there are no pages in the current section. If you want the widget to output anyways, with the section title, check this box.">?</a>]</th>
-								<td style="padding: 10px;">
-									<input type="checkbox" name="ssn_show_empty" id="ssn_show_empty"<?php if (get_option('ssn_show_empty')) { echo ' checked="true"'; } ?> />
-								</td>
-							</tr>
-							<?php /*
-							<tr valign="top">
-							<th scope="row" valign="top">Categories as blog children [<a href="#" onclick="alert('Will handle blog categories as children of the main blog page. Note that this uses category CSS styles instead of page CSS styles in the current version, which may break your styling.'); return false;" style="cursor: help;" title="Will handle blog categories as children of the main blog page. Note that this uses category CSS styles instead of page CSS styles in the current version, which may break your styling.">?</a>]</th>
-							<td style="padding: 10px;">
-								<input type="checkbox" name="ssn_cats_as_pages" id="ssn_cats_as_pages"<?php if (get_option('ssn_cats_as_pages')) { echo ' checked="true"'; } ?> />
-							</td>
-							</tr>
-							*/ ?>
-							<tr valign="top">
-								<th scope="row" valign="top" style="padding-bottom: 4px;">Exclude Pages [<a href="#" onclick="alert('A comma seperated list of page IDs for pages that should not appear in the navigation. Note that all children of excluded pages will also be excluded. If you include the page id for a top level page in this list, the widget will not be displayed in that section.'); return false;" style="cursor: help;" title="A comma seperated list of page IDs for pages that should not appear in the navigation. Note that all children of excluded pages will also be excluded. If you include the page id for a top level page in this list, the widget will not be displayed in that section.">?</a>]</th>
-								<td style="padding-bottom: 4px;">
-									<input type="text" name="ssn_exclude" id="ssn_exclude" value="<?php echo get_option('ssn_exclude'); ?>" style="width: 80px;" />
-								</td>
-							</tr>
-							<tr valign="top">
-								<th scope="row" valign="top">Hide on excluded pages [<a href="#" onclick="alert('Although excluded pages do not show up in the widget, normally, when on an excluded page, the navigation for the section the page is in still shows up. Check this box if you do not want to display section navigation when on a page in the exclude list above.'); return false;" style="cursor: help;" title="Although excluded pages do not show up in the widget, normally, when on an excluded page, the navigation for the section the page is in still shows up. Check this box if you do not want to display section navigation when on a page in the exclude list above.">?</a>]</th>
-								<td style="padding: 10px;">
-									<input type="checkbox" name="ssn_hide_on_excluded" id="ssn_hide_on_excluded"<?php if (get_option('ssn_hide_on_excluded')) { echo ' checked="true"'; } ?> />
-								</td>
-							</tr>
-							<tr valign="top">
-								<th scope="row" valign="top">Sort pages by</th>
-								<td style="padding: 10px;">
-									<select name="ssn_sortby" id="ssn_sortby">
-										<option value="menu_order"<?php if (get_option('ssn_sortby') == "menu_order") echo ' selected="selected"'; ?>>Menu Order</option>
-										<option value="post_title"<?php if (get_option('ssn_sortby') == "post_title") echo ' selected="selected"'; ?>>Title</option>
-										<option value="post_date"<?php if (get_option('ssn_sortby') == "post_date") echo ' selected="selected"'; ?>>Pub Date</option>
-										<option value="post_modified"<?php if (get_option('ssn_sortby') == "post_modified") echo ' selected="selected"'; ?>>Mod Date</option>
-										<option value="ID"<?php if (get_option('ssn_sortby') == "ID") echo ' selected="selected"'; ?>>Page ID</option>
-										<option value="post_author"<?php if (get_option('ssn_sortby') == "post_author") echo ' selected="selected"'; ?>>Author</option>
-										<option value="post_name"<?php if (get_option('ssn_sortby') == "post_name") echo ' selected="selected"'; ?>>Permalink</option>
-									</select>
-								</td>
-							</tr>
-							<tr valign="top">
-								<td colspan="2" style="border-top: 1px dashed #DFDFDF;">
-									<p>If your template does not use widgets, you can call the section navigation by using the function <strong>simple_section_nav()</strong>. The function accepts two parameters: "before_title" and "after_title", allowing control over HTML around the  section title. For example, if you wanted to wrap the section title in heading 2 tags, you would call the function like so: <strong>simple_section_nav("&lt;h2&gt;","&lt;/h2&gt;")</strong></p>
-								</td>
-							</tr>
-						</table>
-					</div>
-				</div>
-				
-				<input type="hidden" name="action" value="update" />
-				<input type="hidden" name="page_options" value="ssn_show_on_home,ssn_a_heading,ssn_show_all,ssn_show_empty,ssn_exclude,ssn_hide_on_excluded,ssn_sortby" />
-				
-				<p>
-				<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
-				</p>
-			
-			</form>	
-		</div>
-	</div>	
-<?php 
+			$thedepth = count($post_ancestors)+1; //prevents improper grandchildren from showing
+		}		
+		
+		$children = wp_list_pages(array('title_li'=>'', 'echo'=>0, 'depth'=>$thedepth, 'child_of'=>$top_page, 'sort_column'=>$instance['sort_by'], 'exclude'=>($pagelist.$instance['exclude'])));	//get the list of pages, including only those in our page list
+		if(!$children && !$instance['show_empty']) return false; 	//if there are no pages in this section, and use hasnt chosen to display widget anyways, leave the function
+		
+		$sect_title = get_the_title($top_page);
+		if ($instance['a_heading']) {
+			$headclass = ($post->ID == $top_page) ? "current_page_item" : "current_page_ancestor";
+			$sect_title = '<a href="'.get_permalink($top_page).'" id="toppage-'.$top_page.'" class="'.$headclass.'">'.$sect_title.'</a>';	
+		}
+	  	
+		echo $before_widget;  
+		echo $before_title.$sect_title.$after_title;
+		echo "<ul>";  
+		echo $children;
+		echo "</ul>";  
+		echo $after_widget;
 	}
 
-function ssn_admin_menu() {
-	add_options_page('Simple Section Navigation Configuration', 'Section Nav', 8, __FILE__, 'ssn_options');
+	function update($new_instance, $old_instance) {
+		$instance = $old_instance;
+		$instance['show_all'] = ($new_instance['show_all']) ? true : false;
+		$instance['exclude'] = str_replace(" ","",$new_instance['exclude']); //remove spaces from list
+		$instance['hide_on_excluded'] = ($new_instance['hide_on_excluded']) ? true : false;
+		$instance['show_on_home'] = ($new_instance['show_on_home']) ? true : false;
+		$instance['show_empty'] = ($new_instance['show_empty']) ? true : false;
+		$instance['sort_by'] = $new_instance['sort_by'];
+		$instance['a_heading'] = ($new_instance['a_heading']) ? true : false;
+		return $instance;
+	}
+
+	function form($instance){
+		$instance = wp_parse_args((array) $instance, array('show_all' => false, 'exclude' => '', 'hide_on_excluded' => true, 'show_on_home' => false, 'show_empty' => false, 'sort_by' => 'menu_order', 'a_heading' => false)); //defaults
+	?>
+		<p>
+			<label for="<?php echo $this->get_field_id('sort_by'); ?>"><?php echo __('Sort pages by:'); ?></label>
+			<select name="<?php echo $this->get_field_name('sort_by'); ?>" id="<?php echo $this->get_field_id('sort_by'); ?>" class="widefat">
+			<?php
+				$sort_by_opts = array('menu_order' => 'Page order', 'post_title' => 'Page title', 'ID' => 'Page ID');
+				foreach($sort_by_opts as $key => $sort_opt) {
+					echo '<option value="'.$key.'"';
+					if ($instance['sort_by'] == $key) echo ' selected="selected"';
+					echo ">$sort_opt</option>\n";
+				}
+			?>
+			</select>
+		</p>
+		<p>
+			<label for="<?php echo $this->get_field_id('exclude'); ?>"><?php echo __('Exclude:'); ?></label> 
+			<input type="text" id="<?php echo $this->get_field_id('exclude'); ?>" name="<?php echo $this->get_field_name('exclude'); ?>" value="<?php echo esc_html($instance['exclude']); ?>" size="7" class="widefat" /><br />
+			<small>Page IDs, separated by commas.</small>			
+		</p>
+		<p> 
+			<input type="checkbox" id="<?php echo $this->get_field_id('show_on_home'); ?>" name="<?php echo $this->get_field_name('show_on_home'); ?>"<?php fld_checked_output($instance['show_on_home']); ?> />
+			<label for="<?php echo $this->get_field_id('show_on_home'); ?>"><?php echo __('Show on home page'); ?></label>
+			<br /> 
+			<input type="checkbox" id="<?php echo $this->get_field_id('a_heading'); ?>" name="<?php echo $this->get_field_name('a_heading'); ?>"<?php fld_checked_output($instance['a_heading']); ?>/>
+			<label for="<?php echo $this->get_field_id('a_heading'); ?>"><?php echo __('Link heading (top level page)'); ?></label>
+			<br />
+			<input type="checkbox" id="<?php echo $this->get_field_id('show_all'); ?>" name="<?php echo $this->get_field_name('show_all'); ?>"<?php fld_checked_output($instance['show_all']); ?>/>
+			<label for="<?php echo $this->get_field_id('show_all'); ?>"><?php echo __('Show all pages in section'); ?></label>
+			<br />
+			<input type="checkbox" id="<?php echo $this->get_field_id('show_empty'); ?>" name="<?php echo $this->get_field_name('show_empty'); ?>"<?php fld_checked_output($instance['show_empty']); ?>/>
+			<label for="<?php echo $this->get_field_id('show_empty'); ?>"><?php echo __('Output even if empty section'); ?></label>
+			<br />
+			<input type="checkbox" id="<?php echo $this->get_field_id('hide_on_excluded'); ?>" name="<?php echo $this->get_field_name('hide_on_excluded'); ?>"<?php fld_checked_output($instance['hide_on_excluded']); ?>/>
+			<label for="<?php echo $this->get_field_id('hide_on_excluded'); ?>"><?php echo __('No nav on excluded pages'); ?></label> 			
+		</p>
+		<p><small><a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/" target="_blank">Help &amp; Support</a></small></p>
+	<?php
+	}
 }
-add_action('admin_menu', 'ssn_admin_menu');
+
+add_action('widgets_init', create_function('', 'return register_widget("SimpleSectionNav");'));
+
+/**
+ * Display section based navigation
+ * 
+ * Arguments include: 'show_all' (boolean), 'exclude' (comma delimited list of page IDs),
+ * 'show_on_home' (boolean), 'show_empty' (boolean), sort_by (any valid page sort string),
+ * 'a_heading' (boolean), 'before_widget' (string), 'after_widget' (strong)
+ *
+ * @param array|string $args Optional. Override default arguments.
+ * @param NULL deprecated - so pre 2.0 implementations don't break site 
+ * @return string HTML content, if not displaying.
+ */
+function simple_section_nav($args='',$deprecated=NULL) {
+	if (!is_null($deprecated)) {
+		echo 'The section navigation has been upgrade from 1.x to 2.0; this template needs to be updated to reflect major changes to the plug-in.';
+		return false;
+	}
+	$args = wp_parse_args($args, array('show_all' => false, 'exclude' => '', 'hide_on_excluded' => true, 'show_on_home' => false, 'show_empty' => false, 'sort_by' => 'menu_order', 'a_heading' => false, 'before_widget'=>'<div>','after_widget'=>'</div>')); //defaults
+	the_widget('SimpleSectionNav',$args,array('before_widget'=>$args['before_widget'],'after_widget'=>$args['after_widget']));
+}
+
+//********************//
+//action link for help//
+//********************//
+
+add_filter('plugin_action_links', 'simple_section_nav_actlinks', 10, 2);
+
+function simple_section_nav_actlinks($links, $file) {
+	$thisFile = basename(__FILE__);
+    if (basename($file) == $thisFile) {
+        $l = '<a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/" target="_blank" style="font-weight: bold;">Help & Support</a>';
+        array_unshift($links, $l);
+    }
+    return $links;
+}
+
+//********************//
+//upgrade from pre 2.0//
+//********************//
+
+function simple_section_nav_activate() 
+{
+	if (get_option('ssn_sortby') === false) return false;	//if not upgrading, leave
+	
+	$show_all = (get_option('ssn_show_all')) ? 1 : 0;
+	$exclude =  str_replace(" ","",get_option('ssn_exclude'));
+	$hide_on_excluded = (get_option('ssn_hide_on_excluded')) ? 1 : 0;
+	$show_on_home = (get_option('ssn_show_on_home')) ? 1 : 0;
+	$show_empty = (get_option('ssn_show_empty')) ? 1 : 0;
+	$a_heading = (get_option('ssn_a_heading')) ? 1 : 0;
+	
+	$settings = array('show_all'=>$show_all, 'exclude'=>$exclude, 'hide_on_excluded'=>$hide_on_excluded,'show_on_home'=>$show_on_home,'show_empty'=>$show_empty,'sort_by'=>get_option('ssn_sortby'),'a_heading'=>$a_heading);
+	wp_convert_widget_settings('simple-section-nav','widget_simple-section-nav',$settings);
+	/*	
+	//delete old settings
+	//will leave for a future update just in case people want to roll back
+	delete_option('ssn_show_all');
+	delete_option('ssn_exclude');
+	delete_option('ssn_hide_on_excluded');
+	delete_option('ssn_show_on_home');
+	delete_option('ssn_show_empty');
+	delete_option('ssn_sortby');
+	delete_option('ssn_a_heading');
+	*/
+}
+register_activation_hook(__FILE__, 'simple_section_nav_activate');
 ?>
