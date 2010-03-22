@@ -3,8 +3,8 @@ Contributors: Jacob M Goldman (C. Murray Consulting)
 Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
 Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.8
-Tested up to: 2.9.1
-Stable tag: 2.0
+Tested up to: 2.9.2
+Stable tag: 2.0.1
 
 Adds a widget for section (or top level page) based page navigation. Essential for CMS! Includes simple function for template developers.
 
@@ -52,6 +52,8 @@ argument in the form of a classical WordPress set of parameters.
 * `a_heading` - Show all pages in section (default: false)
 * `before_widget` - HTML before widget (default: `<div>`)
 * `after_widget` - HTML after widget (default: `</div>`)
+* `before_title` - HTML before widget (default: `<h2 class="widgettitle">`)
+* `after_title` - HTML after widget (default: `</h2>`)
 
 = Example =
 
@@ -67,6 +69,9 @@ Will wrap the widget in LI tags, exclude page ID 2, and will output on home page
 
 
 == Changelog ==
+
+= 2.0.1 =
+Ability to customize "before_title" and "after_title" when calling via template function
 
 = 2.0 =
 Version 2.0 represents a fundamental change to the plug-in's architecture. Developers calling the widget by a function in the template (not using the widget) will be *required* to update the template, unless using the default settings. The function now has 1 parameter: arguments for the output of the widget, as detailed under installation instructions. New features include multiwidget support, better performance, and independent configuration for each instance.

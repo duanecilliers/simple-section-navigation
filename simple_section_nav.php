@@ -3,7 +3,7 @@
  Plugin Name: Simple Section Navigation Widget
  Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
  Description: Adds a <strong>widget</strong> for <strong>section (or top level page) based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current page hierarchy. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
- Version: 2.0
+ Version: 2.0.1
  Author: Jacob M Goldman (C. Murray Consulting)
  Author URI: http://www.cmurrayconsulting.com
 
@@ -193,8 +193,8 @@ function simple_section_nav($args='',$deprecated=NULL) {
 		echo 'The section navigation has been upgrade from 1.x to 2.0; this template needs to be updated to reflect major changes to the plug-in.';
 		return false;
 	}
-	$args = wp_parse_args($args, array('show_all' => false, 'exclude' => '', 'hide_on_excluded' => true, 'show_on_home' => false, 'show_empty' => false, 'sort_by' => 'menu_order', 'a_heading' => false, 'before_widget'=>'<div>','after_widget'=>'</div>')); //defaults
-	the_widget('SimpleSectionNav',$args,array('before_widget'=>$args['before_widget'],'after_widget'=>$args['after_widget']));
+	$args = wp_parse_args($args, array('show_all' => false, 'exclude' => '', 'hide_on_excluded' => true, 'show_on_home' => false, 'show_empty' => false, 'sort_by' => 'menu_order', 'a_heading' => false, 'before_widget'=>'<div>','after_widget'=>'</div>', 'before_title'=>'<h2 class="widgettitle">', 'after_title'=>'</h2>')); //defaults
+	the_widget('SimpleSectionNav',$args,array('before_widget'=>$args['before_widget'],'after_widget'=>$args['after_widget'],'before_title'=>$args['before_title'],'after_title'=>$args['after_title']));
 }
 
 //********************//
@@ -206,7 +206,7 @@ add_filter('plugin_action_links', 'simple_section_nav_actlinks', 10, 2);
 function simple_section_nav_actlinks($links, $file) {
 	$thisFile = basename(__FILE__);
     if (basename($file) == $thisFile) {
-        $l = '<a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/" target="_blank" style="font-weight: bold;">Help & Support</a>';
+        $l = '<a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/" target="_blank">Help & Support</a>';
         array_unshift($links, $l);
     }
     return $links;
