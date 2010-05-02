@@ -4,7 +4,7 @@ Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-
 Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.8
 Tested up to: 2.9.2
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 
 Adds a widget for section (or top level page) based page navigation. Essential for CMS! Includes simple function for template developers.
 
@@ -70,8 +70,15 @@ Will wrap the widget in LI tags, exclude page ID 2, and will output on home page
 
 == Changelog ==
 
+= 2.0.2 =
+* Applies "simple_section_page_list" filter to child page list before output
+* Adds "current_page_parent" class to linked heading, if applicable
+* Improved logic around page ancestors in the excluded list
+* Fixes rare error involving post ancestor setup
+* Many general improvement and optimizations to codebase
+
 = 2.0.1 =
-Ability to customize "before_title" and "after_title" when calling via template function
+* Ability to customize "before_title" and "after_title" when calling via template function
 
 = 2.0 =
 Version 2.0 represents a fundamental change to the plug-in's architecture. Developers calling the widget by a function in the template (not using the widget) will be *required* to update the template, unless using the default settings. The function now has 1 parameter: arguments for the output of the widget, as detailed under installation instructions. New features include multiwidget support, better performance, and independent configuration for each instance.
