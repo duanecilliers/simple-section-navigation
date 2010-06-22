@@ -3,8 +3,8 @@ Contributors: Jacob M Goldman (C. Murray Consulting)
 Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
 Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.8
-Tested up to: 2.9.2
-Stable tag: 2.0.2
+Tested up to: 3.0
+Stable tag: 2.1
 
 Adds a widget for section (or top level page) based page navigation. Essential for CMS! Includes simple function for template developers.
 
@@ -21,6 +21,7 @@ It includes a simple widget configuration panel. From this panel you can:
 1. Determine whether the widget should appear even if the section only has one page (the top level)
 1. Provide a list of pages to exclude from the output
 1. Determine whether the section navigation should still appear when viewing excluded pages
+1. Use a specific widget title (i.e. In This Section), or just use the top level page title
 1. Determine whether the section title should be linked
 1. Determine page sort order (defaults to menu order)
 
@@ -49,6 +50,7 @@ argument in the form of a classical WordPress set of parameters.
 * `show_on_home` - Show top level page list on home page (default: false)
 * `show_empty` - Output even if empty section (default: false)
 * `sort_by` - Page sort order; can use any WordPress page list sort value (default: menu_order)
+* `title` - Provide a specific widget title; default is the top level page title (default: '')
 * `a_heading` - Show all pages in section (default: false)
 * `before_widget` - HTML before widget (default: `<div>`)
 * `after_widget` - HTML after widget (default: `</div>`)
@@ -64,14 +66,19 @@ Will wrap the widget in LI tags, exclude page ID 2, and will output on home page
 
 == Screenshots ==
 
-1. Sceenshot of output, using widget. "Get Informed" is a top level pages, and "Clinics" is a sub page.
+1. Sceenshot of widget output on "Open Source" page under top level page "My Portfolio", running Twenty-Ten theme
 2. Screenshot of widget configuration.
 
 
 == Changelog ==
 
+= 2.1 =
+* Ability to specify the widget title (still defaults to top level page name)
+* New filter for widget title, `simple_section_nav_title`, for greater developer control over title
+* Various minor optimizations for performance, widget option sanitizing, best coding practices
+
 = 2.0.2 =
-* Applies "simple_section_page_list" filter to child page list before output
+* Applies `simple_section_page_list` filter to child page list before output
 * Adds "current_page_parent" class to linked heading, if applicable
 * Improved logic around page ancestors in the excluded list
 * Fixes rare error involving post ancestor setup
