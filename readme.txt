@@ -66,7 +66,7 @@ Will wrap the widget in LI tags, exclude page ID 2, and will output on home page
 
 == Screenshots ==
 
-1. Sceenshot of widget output on "Open Source" page under top level page "My Portfolio", running Twenty-Ten theme
+1. Screenshot of widget output on "Open Source" page under top level page "My Portfolio", running Twenty-Ten theme
 2. Screenshot of widget configuration.
 
 
