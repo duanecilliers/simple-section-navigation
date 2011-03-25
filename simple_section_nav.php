@@ -1,13 +1,13 @@
 <?php
 /**
  Plugin Name: Simple Section Navigation Widget
- Plugin URI: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
+ Plugin URI: http://www.get10up.com/plugins/simple-section-navigation/
  Description: Adds a <strong>widget</strong> for <strong>section (or top level page) based navigation</strong>... essential for <strong>CMS</strong> implementations! The <strong>title of the widget is the top level page</strong> within the current page hierarchy. Shows all page siblings (except on the top level page), all parents and grandparents (and higher), the siblings of all parents and grandparents (up to top level page), and any immediate children of the current page. Can also be called by a function inside template files. May <strong>exclude any pages or sections</strong>. Uses standard WordPress navigation classes for easy styling. 
  Version: 2.1
- Author: Jacob M Goldman (C. Murray Consulting)
- Author URI: http://www.cmurrayconsulting.com
+ Author: Jake Goldman (10up)
+ Author URI: http://www.get10up.com
 
-    Plugin: Copyright 2009 C. Murray Consulting  (email : jake@cmurrayconsulting.com)
+    Plugin: Copyright 2011 10up  (email : jake@get10up.com)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ class SimpleSectionNav extends WP_Widget
 			<input class="checkbox" type="checkbox" <?php checked($instance['hide_on_excluded']); ?> id="<?php echo $this->get_field_id('hide_on_excluded'); ?>" name="<?php echo $this->get_field_name('hide_on_excluded'); ?>" />
 			<label for="<?php echo $this->get_field_id('hide_on_excluded'); ?>"><?php _e('No nav on excluded pages'); ?></label> 			
 		</p>
-		<p><small><a href="http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/" target="_blank">Help &amp; Support</a></small></p>
+		<p><small><a href="http://www.get10up.com/plugins/simple-section-navigation/" target="_blank">Help &amp; Support</a></small></p>
 	<?php
 	}
 }

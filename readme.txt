@@ -1,9 +1,9 @@
 === Simple Section Navigation Widget ===
-Contributors: Jacob M Goldman (C. Murray Consulting)
-Donate link: http://www.cmurrayconsulting.com/software/wordpress-simple-section-navigation/
+Contributors: jakemgold, thinkoomph
+Donate link: http://www.get10up.com/plugins/simple-section-navigation/
 Tags: navigation, section, cms, pages, top level, hierarchy
 Requires at least: 2.8
-Tested up to: 3.0
+Tested up to: 3.1
 Stable tag: 2.1
 
 Adds a widget for section (or top level page) based page navigation. Essential for CMS! Includes simple function for template developers.
@@ -66,7 +66,7 @@ Will wrap the widget in LI tags, exclude page ID 2, and will output on home page
 
 == Screenshots ==
 
-1. Sceenshot of widget output on "Open Source" page under top level page "My Portfolio", running Twenty-Ten theme
+1. Screenshot of widget output on "Open Source" page under top level page "My Portfolio", running Twenty-Ten theme
 2. Screenshot of widget configuration.
 
 
